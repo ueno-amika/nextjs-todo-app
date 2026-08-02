@@ -11,6 +11,8 @@ export type Todo = {
   text: string;
   done: boolean;
   createdAt: number;
+  /** 期限（YYYY-MM-DD）。未設定なら undefined */
+  due?: string;
 };
 
 const STORAGE_KEY = "todos.v1";
@@ -97,13 +99,28 @@ function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function addTodo(text: string) {
+export function addTodo(text: string, due?: string) {
   const trimmed = text.trim();
   if (!trimmed) return; // 空文字は追加しない
   todos = [
-    { id: newId(), text: trimmed, done: false, createdAt: Date.now() },
+    {
+      id: newId(),
+      text: trimmed,
+      done: false,
+      createdAt: Date.now(),
+      due: due || undefined,
+    },
     ...todos,
   ];
+  persist();
+  emit();
+}
+
+/** タスクの期限を更新（空文字で期限を外す） */
+export function setDue(id: string, due: string) {
+  todos = todos.map((t) =>
+    t.id === id ? { ...t, due: due || undefined } : t
+  );
   persist();
   emit();
 }
