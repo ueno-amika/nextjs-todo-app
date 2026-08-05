@@ -116,6 +116,15 @@ export function addTodo(text: string, due?: string) {
   emit();
 }
 
+/** タスクの本文を編集する（空文字なら変更しない） */
+export function editTodo(id: string, text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  todos = todos.map((t) => (t.id === id ? { ...t, text: trimmed } : t));
+  persist();
+  emit();
+}
+
 /** タスクの期限を更新（空文字で期限を外す） */
 export function setDue(id: string, due: string) {
   todos = todos.map((t) =>

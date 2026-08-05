@@ -5,6 +5,7 @@ import {
   addTodo,
   clearDone,
   deleteTodo,
+  editTodo,
   getServerSnapshot,
   getSnapshot,
   setDue,
@@ -74,6 +75,9 @@ export default function TodoApp() {
   const [input, setInput] = useState("");
   const [dueInput, setDueInput] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  // 編集中のタスクID（null = 編集していない）と、その編集テキスト
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   const remaining = useMemo(() => todos.filter((t) => !t.done).length, [todos]);
@@ -100,6 +104,22 @@ export default function TodoApp() {
   }
 
   const canAdd = input.trim().length > 0;
+
+  function startEdit(id: string, text: string) {
+    setEditingId(id);
+    setEditText(text);
+  }
+
+  function saveEdit() {
+    if (editingId) editTodo(editingId, editText);
+    setEditingId(null);
+    setEditText("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditText("");
+  }
 
   return (
     <div className="w-full max-w-xl">
@@ -228,16 +248,31 @@ export default function TodoApp() {
                   />
 
                   <div className="min-w-0 flex-1">
-                    <label
-                      htmlFor={`cb-${todo.id}`}
-                      className={`block cursor-pointer break-words text-base transition ${
-                        todo.done
-                          ? "text-black/40 line-through dark:text-white/40"
-                          : ""
-                      }`}
-                    >
-                      {todo.text}
-                    </label>
+                    {editingId === todo.id ? (
+                      <input
+                        autoFocus
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit();
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        aria-label="タスクを編集"
+                        className="w-full rounded-lg border border-black/30 bg-transparent px-2 py-1 text-base outline-none focus:border-black/50 focus:ring-2 focus:ring-black/10 dark:border-white/40 dark:focus:border-white/60 dark:focus:ring-white/10"
+                      />
+                    ) : (
+                      <label
+                        htmlFor={`cb-${todo.id}`}
+                        onDoubleClick={() => startEdit(todo.id, todo.text)}
+                        className={`block cursor-pointer break-words text-base transition ${
+                          todo.done
+                            ? "text-black/40 line-through dark:text-white/40"
+                            : ""
+                        }`}
+                      >
+                        {todo.text}
+                      </label>
+                    )}
 
                     {/* 期限バッジ（クリックで変更、× で解除） */}
                     <div className="mt-1.5 flex items-center gap-1">
@@ -304,27 +339,96 @@ export default function TodoApp() {
                     </div>
                   </div>
 
-                  {/* 削除 */}
-                  <button
-                    onClick={() => deleteTodo(todo.id)}
-                    aria-label={`「${todo.text}」を削除`}
-                    className="shrink-0 rounded-lg p-2 text-black/40 opacity-100 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500/40 sm:opacity-0 sm:group-hover:opacity-100 dark:text-white/40 dark:hover:text-red-400"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="size-5"
-                      aria-hidden
-                    >
-                      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
-                      <path d="M10 11v6M14 11v6" />
-                    </svg>
-                  </button>
+                  {/* 操作ボタン */}
+                  {editingId === todo.id ? (
+                    <div className="flex shrink-0 items-center gap-1">
+                      {/* 保存 */}
+                      <button
+                        onClick={saveEdit}
+                        aria-label="編集を保存"
+                        className="rounded-lg p-2 text-green-600 transition hover:bg-green-500/10 focus-visible:ring-2 focus-visible:ring-green-500/40 dark:text-green-400"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-5"
+                          aria-hidden
+                        >
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      </button>
+                      {/* キャンセル */}
+                      <button
+                        onClick={cancelEdit}
+                        aria-label="編集をキャンセル"
+                        className="rounded-lg p-2 text-black/40 transition hover:bg-black/5 hover:text-black/70 focus-visible:ring-2 focus-visible:ring-black/20 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white/70"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-5"
+                          aria-hidden
+                        >
+                          <path d="M18 6 6 18M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex shrink-0 items-center gap-0.5">
+                      {/* 編集 */}
+                      <button
+                        onClick={() => startEdit(todo.id, todo.text)}
+                        aria-label={`「${todo.text}」を編集`}
+                        className="rounded-lg p-2 text-black/40 opacity-100 transition hover:bg-black/5 hover:text-black/70 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-black/20 sm:opacity-0 sm:group-hover:opacity-100 dark:text-white/40 dark:hover:bg-white/10 dark:hover:text-white/70"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-5"
+                          aria-hidden
+                        >
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                        </svg>
+                      </button>
+                      {/* 削除 */}
+                      <button
+                        onClick={() => deleteTodo(todo.id)}
+                        aria-label={`「${todo.text}」を削除`}
+                        className="rounded-lg p-2 text-black/40 opacity-100 transition hover:bg-red-500/10 hover:text-red-600 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-red-500/40 sm:opacity-0 sm:group-hover:opacity-100 dark:text-white/40 dark:hover:text-red-400"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="size-5"
+                          aria-hidden
+                        >
+                          <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+                          <path d="M10 11v6M14 11v6" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
