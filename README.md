@@ -1,39 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 天気予報アプリ
 
-## Getting Started
+都市名や現在地から、**気温・天気・湿度・降水確率**を表示する Next.js アプリです。
+カレンダー（日付ボタン）で週間予報の中から日付を選び、その日の予報に切り替えられます。
 
-First, run the development server:
+- データ元: [OpenWeatherMap](https://openweathermap.org/api)（現在天気 + 5日/3時間予報）
+- API キーはサーバー側の Route Handler (`/api/weather`) でのみ使用し、ブラウザには渡しません。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## セットアップ
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. OpenWeatherMap で無料アカウントを作成し、API キーを取得します。
+   https://openweathermap.org/api （キーは発行後、有効化まで数分〜数十分かかることがあります）
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+2. `.env.example` を参考に `.env.local` を作成し、キーを設定します。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+   ```bash
+   OPENWEATHER_API_KEY=あなたのAPIキー
+   ```
 
-## Learn More
+3. 開発サーバーを起動します。
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npm run dev
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   [http://localhost:3000](http://localhost:3000) を開きます。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 使い方
 
-## Deploy on Vercel
+- 上部の入力欄に都市名（例: `Tokyo`, `Osaka`, `London`）を入れて「検索」。
+- 「📍 現在地」で端末の位置情報から取得（ブラウザの許可が必要）。
+- 「日付を選ぶ」の日付ボタンで、週間予報の中の任意の日に切り替え。
+- 各日は最高/最低気温・湿度・降水確率と、3時間ごとの詳細を表示します。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 主なファイル
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/app/page.tsx` … トップページ（天気アプリ）
+- `src/components/weather-app.tsx` … 画面（検索・現在地・カレンダー・表示）
+- `src/app/api/weather/route.ts` … OpenWeatherMap を叩くサーバー側 API
+- `src/lib/weather.ts` … 取得・整形ロジック（サーバー専用）
+- `src/app/todo/page.tsx` … 以前の ToDo アプリ（`/todo` に退避）
 
-## デプロイ
+## デプロイ（Vercel）
+
 GitHub の main ブランチへ push すると Vercel が自動デプロイします。
+Vercel 側でも環境変数 `OPENWEATHER_API_KEY` を設定してください
+（Project → Settings → Environment Variables）。

@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ToDo リスト",
-  description: "タスクの追加・完了・削除ができ、ブラウザに保存される ToDo アプリ",
+  title: "天気予報アプリ",
+  description:
+    "都市や現在地の気温・天気・湿度・降水確率を表示し、日付を選んで週間予報を切り替えられる天気アプリ",
 };
 
 export default function RootLayout({
@@ -27,7 +28,7 @@ export default function RootLayout({
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }
