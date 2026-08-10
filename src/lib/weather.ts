@@ -9,6 +9,8 @@ const BASE = "https://api.openweathermap.org/data/2.5";
 export type WeatherData = {
   /** 表示用の地点名（例: "東京都, JP"） */
   location: string;
+  /** 地点の座標（お気に入りの再取得などに使う） */
+  coord: { lat: number; lon: number };
   /** 現在の天気 */
   current: CurrentWeather;
   /** 日別にまとめた予報（今日を含め最大6日程度） */
@@ -125,10 +127,17 @@ export async function getWeather(query: Query): Promise<WeatherData> {
     fetchJson(buildUrl("forecast", query, key)),
   ]);
 
-  const tz = (forecast.city as { timezone?: number })?.timezone ?? 0;
-  const cityName = (forecast.city as { name?: string })?.name ?? "";
-  const country = (forecast.city as { country?: string })?.country ?? "";
+  const city = forecast.city as {
+    timezone?: number;
+    name?: string;
+    country?: string;
+    coord?: { lat: number; lon: number };
+  };
+  const tz = city?.timezone ?? 0;
+  const cityName = city?.name ?? "";
+  const country = city?.country ?? "";
   const location = [cityName, country].filter(Boolean).join(", ");
+  const coord = { lat: city?.coord?.lat ?? 0, lon: city?.coord?.lon ?? 0 };
 
   const list = (forecast.list as ForecastEntry[]) ?? [];
 
@@ -182,7 +191,7 @@ export async function getWeather(query: Query): Promise<WeatherData> {
     pop: daily[0]?.hourly[0]?.pop ?? 0,
   };
 
-  return { location, current: currentWeather, daily };
+  return { location, coord, current: currentWeather, daily };
 }
 
 // --- OpenWeatherMap のレスポンス型（必要な部分のみ） ---
