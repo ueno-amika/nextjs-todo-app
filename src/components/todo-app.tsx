@@ -41,22 +41,43 @@ function formatDue(due: string): string {
   return `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS[d.getDay()]})`;
 }
 
-type DueTone = "overdue" | "today" | "future" | "done";
+/** 2つの YYYY-MM-DD の差を日数で返す（due - today） */
+function daysUntil(due: string): number {
+  const t = new Date(`${todayStr()}T00:00:00`).getTime();
+  const d = new Date(`${due}T00:00:00`).getTime();
+  return Math.round((d - t) / 86_400_000);
+}
+
+/** 「あと2日」「今日」「3日超過」など、期限までの距離を言葉で表す */
+function relativeDue(due: string): string {
+  const diff = daysUntil(due);
+  if (diff < 0) return `${-diff}日超過`;
+  if (diff === 0) return "今日まで";
+  if (diff === 1) return "明日まで";
+  return `あと${diff}日`;
+}
+
+type DueTone = "overdue" | "today" | "soon" | "future" | "done";
 
 /** 期限の状態（色分け用）とラベルを求める */
 function dueInfo(due: string, done: boolean): { tone: DueTone; label: string } {
-  const today = todayStr();
   const base = formatDue(due);
   if (done) return { tone: "done", label: base };
-  if (due < today) return { tone: "overdue", label: `${base}・期限切れ` };
-  if (due === today) return { tone: "today", label: `${base}・今日` };
-  return { tone: "future", label: base };
+  const diff = daysUntil(due);
+  const rel = relativeDue(due);
+  const label = `${base}・${rel}`;
+  if (diff < 0) return { tone: "overdue", label };
+  if (diff === 0) return { tone: "today", label };
+  if (diff <= 2) return { tone: "soon", label }; // 明日・明後日は注意色
+  return { tone: "future", label };
 }
 
 const DUE_TONE_CLASS: Record<DueTone, string> = {
-  overdue: "border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400",
+  overdue:
+    "border-red-500/40 bg-red-500/15 text-red-600 font-semibold dark:text-red-400",
   today:
-    "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    "border-amber-500/40 bg-amber-500/15 text-amber-700 font-semibold dark:text-amber-400",
+  soon: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
   future:
     "border-black/10 bg-black/[0.03] text-black/60 dark:border-white/15 dark:bg-white/5 dark:text-white/60",
   done: "border-black/10 bg-transparent text-black/35 dark:border-white/10 dark:text-white/35",
@@ -72,6 +93,43 @@ function parseTags(raw: string): string[] {
         .filter(Boolean),
     ),
   );
+}
+
+/**
+ * タグ名から安定した色を決める（同じタグは常に同じ色）。
+ * Tailwind はクラス名を静的に解決するため、完全なクラス文字列を配列で持つ。
+ * chip = ボタン／バッジ用、bar = カード左の縦ラインの色。
+ */
+const TAG_CHIP = [
+  "border-indigo-500/25 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300",
+  "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  "border-rose-500/25 bg-rose-500/10 text-rose-700 dark:text-rose-300",
+  "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+  "border-sky-500/25 bg-sky-500/10 text-sky-700 dark:text-sky-300",
+  "border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+  "border-teal-500/25 bg-teal-500/10 text-teal-700 dark:text-teal-300",
+  "border-pink-500/25 bg-pink-500/10 text-pink-700 dark:text-pink-300",
+];
+const TAG_BAR = [
+  "bg-indigo-500",
+  "bg-emerald-500",
+  "bg-rose-500",
+  "bg-amber-500",
+  "bg-sky-500",
+  "bg-violet-500",
+  "bg-teal-500",
+  "bg-pink-500",
+];
+function tagIndex(tag: string): number {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) >>> 0;
+  return h % TAG_CHIP.length;
+}
+function tagColor(tag: string): string {
+  return TAG_CHIP[tagIndex(tag)];
+}
+function tagBar(tag: string): string {
+  return TAG_BAR[tagIndex(tag)];
 }
 
 /** サーバー／ハイドレーション中は false、マウント後に true になる（スケルトン表示用） */
@@ -279,39 +337,53 @@ export default function TodoApp() {
           </div>
         )}
 
-        {/* タグ絞り込み */}
+        {/* タグで表示（メインのタグ切り替えボタン） */}
         {hydrated && allTags.length > 0 && (
-          <div
-            className="mt-3 flex flex-wrap items-center gap-1.5"
-            aria-label="タグで絞り込み"
-          >
-            <button
-              onClick={() => setActiveTag(null)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                activeTag === null
-                  ? "bg-foreground text-background"
-                  : "border border-black/10 text-black/60 hover:bg-black/5 dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10"
-              }`}
+          <div className="mt-5">
+            <p className="mb-2 text-xs font-medium text-black/45 dark:text-white/45">
+              タグで表示
+            </p>
+            <div
+              className="flex flex-wrap items-center gap-2"
+              aria-label="タグで絞り込み"
             >
-              すべてのタグ
-            </button>
-            {allTags.map((tag) => {
-              const active = activeTag === tag;
-              return (
-                <button
-                  key={tag}
-                  onClick={() => setActiveTag(active ? null : tag)}
-                  aria-pressed={active}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                    active
-                      ? "bg-indigo-600 text-white"
-                      : "border border-indigo-500/25 bg-indigo-500/10 text-indigo-700 hover:bg-indigo-500/20 dark:text-indigo-300"
-                  }`}
-                >
-                  #{tag}
-                </button>
-              );
-            })}
+              <button
+                onClick={() => setActiveTag(null)}
+                aria-pressed={activeTag === null}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+                  activeTag === null
+                    ? "bg-foreground text-background"
+                    : "border border-black/10 text-black/60 hover:bg-black/5 dark:border-white/15 dark:text-white/60 dark:hover:bg-white/10"
+                }`}
+              >
+                すべて（{todos.length}）
+              </button>
+              {allTags.map((tag) => {
+                const active = activeTag === tag;
+                const count = todos.filter((t) =>
+                  (t.tags ?? []).includes(tag),
+                ).length;
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => setActiveTag(active ? null : tag)}
+                    aria-pressed={active}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition hover:opacity-80 ${
+                      active
+                        ? "bg-foreground text-background border-transparent"
+                        : tagColor(tag)
+                    }`}
+                  >
+                    <span
+                      className={`size-2 rounded-full ${tagBar(tag)}`}
+                      aria-hidden
+                    />
+                    {tag}
+                    <span className="opacity-60">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -374,11 +446,18 @@ export default function TodoApp() {
                 const subs = todo.subtasks ?? [];
                 const subDone = subs.filter((s) => s.done).length;
                 const isOpen = expanded.has(todo.id);
+                const firstTag = (todo.tags ?? [])[0];
                 return (
                   <li
                     key={todo.id}
-                    className="group rounded-xl border border-black/10 px-3 py-3 transition hover:border-black/20 dark:border-white/10 dark:hover:border-white/25"
+                    className="group relative overflow-hidden rounded-xl border border-black/10 py-3 pr-3 pl-4 transition hover:border-black/20 dark:border-white/10 dark:hover:border-white/25"
                   >
+                    {firstTag && (
+                      <span
+                        className={`absolute inset-y-0 left-0 w-1.5 ${tagBar(firstTag)}`}
+                        aria-hidden
+                      />
+                    )}
                     <div className="flex items-start gap-3">
                       {/* 完了トグル */}
                       <input
@@ -434,21 +513,8 @@ export default function TodoApp() {
                           </label>
                         )}
 
-                        {/* メタ情報：タグ・期限・サブタスク */}
+                        {/* メタ情報：期限・サブタスク（タグはカラム分けで表現するのでカード内には出さない） */}
                         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                          {/* タグチップ（クリックで絞り込み） */}
-                          {(todo.tags ?? []).map((tag) => (
-                            <button
-                              key={tag}
-                              onClick={() =>
-                                setActiveTag(activeTag === tag ? null : tag)
-                              }
-                              className="inline-flex items-center rounded-full border border-indigo-500/25 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-500/20 dark:text-indigo-300"
-                            >
-                              #{tag}
-                            </button>
-                          ))}
-
                           {/* 期限バッジ（クリックで変更、× で解除） */}
                           {(() => {
                             const info = todo.due
