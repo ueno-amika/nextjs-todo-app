@@ -2,15 +2,9 @@
 
 # プロジェクト概要
 
-Next.js の学習用リポジトリ。複数のミニアプリを1つのアプリ内に収録している。
-
-| アプリ               | ルート    | 概要                                                                 |
-| -------------------- | --------- | -------------------------------------------------------------------- |
-| 天気予報             | `/`       | 都市/現在地の天気・週間予報                                          |
-| ToDo                 | `/todo`   | タスク管理（localStorage）                                           |
-| **歯科リコール管理** | `/recall` | 歯科クリニック向け。次回検診の自動計算・リコールメール送信・各種指標 |
-
-主役は **歯科リコール管理システム**（`/recall`）。
+歯科クリニック向けの**リコール（定期検診の再来院）管理**アプリ。
+次回検診日の自動計算・連絡対象の抽出・各種指標・リコールメール送信を提供する。
+トップ（`/`）が唯一のアプリ画面。
 
 # 技術スタック
 
@@ -19,7 +13,7 @@ Next.js の学習用リポジトリ。複数のミニアプリを1つのアプ�
 - Tailwind CSS v4
 - Resend（メール送信）
 - Vercel（ホスティング）
-- Supabase … 型定義（`src/types/database.ts`）とマイグレーションのみ。現状フロントは localStorage 動作
+- Supabase … 型定義（`src/types/database.ts`）とマイグレーションが残っているが、現状フロントは localStorage 動作
 
 # コマンド
 
@@ -31,8 +25,8 @@ npm run lint    # ESLint
 
 # アーキテクチャ規約
 
-- **クライアント状態は localStorage を外部ストア化**：`src/lib/*-store.ts` に実装し、`useSyncExternalStore` で購読する。SSRとの不一致を避けるため `getServerSnapshot`（安定した空スナップショット）を必ず用意する。参考：`src/lib/todo-store.ts` / `src/lib/recall-store.ts`。
-- **秘密キーはサーバー専用**：API キー等は Route Handler（`src/app/api/*/route.ts`）内で `process.env` からのみ参照し、クライアントに渡さない。例：`/api/weather`（OpenWeatherMap）、`/api/recall-email`（Resend）。
+- **クライアント状態は localStorage を外部ストア化**：`src/lib/*-store.ts` に実装し、`useSyncExternalStore` で購読する。SSRとの不一致を避けるため `getServerSnapshot`（安定した空スナップショット）を必ず用意する。参考：`src/lib/recall-store.ts`。
+- **秘密キーはサーバー専用**：API キー等は Route Handler（`src/app/api/*/route.ts`）内で `process.env` からのみ参照し、クライアントに渡さない。例：`/api/recall-email`（Resend）。
 - **Tailwind v4**：`src/app/globals.css` で `@import "tailwindcss"`。共通クラスは `@layer components`（例：`.input`）。
 - UIは日本語・レスポンシブ（スマホ優先）。ダークモードは `prefers-color-scheme`。
 - **コードを書く前に** `AGENTS.md` と `node_modules/next/dist/docs/` の該当ガイドを読む（このNext.jsは独自版で、APIや作法が学習データと異なる）。
@@ -42,17 +36,18 @@ npm run lint    # ESLint
 ```
 src/
   app/
-    page.tsx            天気アプリ（トップ）
-    todo/page.tsx       ToDo
-    recall/page.tsx     リコール管理
-    api/                サーバー側 Route Handler（秘密キー使用）
-    layout.tsx          共通レイアウト（SiteNav）
-    globals.css         Tailwind v4 エントリ
-  components/           画面コンポーネント（*-app.tsx など）
-  lib/                  ストア/ロジック（*-store.ts, *-settings.ts）
-  types/database.ts     Supabase 生成型
-supabase/migrations/    Supabase マイグレーション
-requirements*.md        要件定義書（リコール/予約サイト/料金シミュレーター）
+    page.tsx                   トップ＝リコール管理
+    api/recall-email/route.ts  Resend でメール送信（サーバー側・秘密キー使用）
+    layout.tsx                 共通レイアウト
+    globals.css                Tailwind v4 エントリ
+  components/
+    recall-app.tsx             リコール管理の画面
+  lib/
+    recall-store.ts            患者・予約・指標のロジック（localStorage）
+    recall-settings.ts         メールテンプレート設定
+  types/database.ts            Supabase 生成型
+supabase/migrations/           Supabase マイグレーション
+requirements-recall.md         リコール管理の要件定義書
 ```
 
 # 運用ルール

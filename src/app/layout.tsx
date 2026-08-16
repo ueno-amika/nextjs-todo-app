@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import SiteNav from "@/components/site-nav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "天気予報アプリ",
+  title: "歯科リコール管理",
   description:
-    "都市や現在地の気温・天気・湿度・降水確率を表示し、日付を選んで週間予報を切り替えられる天気アプリ",
+    "歯科の次回検診予定を自動計算し、連絡すべき患者を一覧・管理できるリコール管理アプリ",
 };
 
 export default function RootLayout({
@@ -29,10 +28,7 @@ export default function RootLayout({
       lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col">
-        <SiteNav />
-        {children}
-      </body>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

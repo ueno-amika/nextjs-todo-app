@@ -7,7 +7,7 @@
 - **誰のため**：歯科クリニックの受付・歯科衛生士（業務向け）
 - **何を解決**：定期検診のリコール漏れをなくし、再来院率（＝医院の安定収益）を高める
 
-🔗 **公開URL**：https://nextjs-todo-app-ueno-projects1.vercel.app/recall
+🔗 **公開URL**：https://nextjs-todo-app-ueno-projects1.vercel.app
 💻 **GitHub**：https://github.com/ueno-amika/nextjs-todo-app
 
 ## スクリーンショット
@@ -33,7 +33,7 @@
 | データ保持     | localStorage（`useSyncExternalStore` で外部ストア化） |
 | ホスティング   | Vercel（GitHub 連携で自動デプロイ）                   |
 
-> 秘密キー（Resend / OpenWeatherMap）はサーバー側の Route Handler（`/api/*`）でのみ使用し、ブラウザには渡していません。
+> 秘密キー（Resend）はサーバー側の Route Handler（`/api/recall-email`）でのみ使用し、ブラウザには渡していません。
 
 ## セットアップ
 
@@ -43,8 +43,6 @@
    # リコールメール送信（https://resend.com）
    RESEND_API_KEY=あなたのResendキー
    RESEND_FROM=onboarding@resend.dev   # 認証済み独自ドメインがあればそのアドレス
-   # 天気アプリを使う場合（https://openweathermap.org/api）
-   OPENWEATHER_API_KEY=あなたのAPIキー
    ```
 
 2. 依存をインストールして開発サーバーを起動します。
@@ -54,30 +52,19 @@
    npm run dev
    ```
 
-   [http://localhost:3000/recall](http://localhost:3000/recall) を開きます。
+   [http://localhost:3000](http://localhost:3000) を開きます。
 
 > メールの本番送信（任意の宛先へ）には Resend で独自ドメインの認証が必要です。
 > 未認証（`onboarding@resend.dev`）の場合は自分のアドレス宛てにのみ送信できます。
-
-## 収録アプリ
-
-このリポジトリには学習の過程で作った複数のアプリが含まれます。
-
-| アプリ           | ルート    | 概要                                          |
-| ---------------- | --------- | --------------------------------------------- |
-| 歯科リコール管理 | `/recall` | 本README のメイン                             |
-| 天気予報         | `/`       | 都市/現在地の天気・週間予報（OpenWeatherMap） |
-| ToDo             | `/todo`   | タスク管理（localStorage）                    |
 
 ## ディレクトリ構成（主要）
 
 ```
 src/
   app/
-    recall/page.tsx            リコール管理ページ
+    page.tsx                   トップ＝リコール管理
     api/recall-email/route.ts  Resend でメール送信（サーバー側）
-    api/weather/route.ts       OpenWeatherMap（サーバー側）
-    layout.tsx                 共通レイアウト（ナビ）
+    layout.tsx                 共通レイアウト
   components/
     recall-app.tsx             リコール管理の画面
   lib/
@@ -89,5 +76,5 @@ requirements-recall.md         リコール管理の要件定義書
 ## デプロイ（Vercel）
 
 GitHub の `main` へ push すると Vercel が自動デプロイします。
-Vercel 側でも環境変数（`RESEND_API_KEY` / `RESEND_FROM` / `OPENWEATHER_API_KEY`）を
+Vercel 側でも環境変数（`RESEND_API_KEY` / `RESEND_FROM`）を
 Project → Settings → Environment Variables に設定してください。
